@@ -1,0 +1,292 @@
+---
+---
+
+<!DOCTYPE HTML>
+<head>
+{% include common.html %}
+{% assign base_repository = page.repository %}
+{% assign results_repository = page.results_repository %}
+{% include common_variables.html %}
+<script src="results_helpers.js"></script>
+</head>
+<body>
+
+<ol class="breadcrumb">
+  <li><a href="full_dashboard.html">Full Dashboard</a></li>
+  <li><a href="index.html">Active Dashboard</a></li>
+  <li><a href='performance.html'>Performance</a></li>
+  <li><a href='bot_health.html'>Bot Health</a></li>
+  <li>Results</li>
+</ol>
+
+<div class="container-fluid">
+
+{% if page.results_repository %}
+<a class="btn btn-danger" href="{{ base_delete_url }}/{{ page.path }}"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Delete results and force rebuild.</a>
+<br/>
+{% endif %}
+
+<script type="text/javascript">
+var num_tables = 0;
+
+results_data = {{ content | json }};
+accordian_group = 0;
+
+results_data.build_results.sort(compare_data);
+results_data.test_results.sort(compare_test_data);
+
+if (results_data.hasOwnProperty("performance_results") && results_data.performance_results != null && results_data.performance_results.hasOwnProperty("test_files") && results_data.performance_results.test_files != null) {
+  results_data.performance_results.test_files.sort(compare_performance_data);
+}
+
+function format_configuration(data)
+{
+  var retval = "";
+  for (var p in data.configuration) {
+    retval += p + ": " + data.configuration[p] + "<br/>";
+  }
+  return retval;
+}
+</script>
+
+<div class="page-header">
+  <h1>Build Results</h1>
+  {% if page.pending %}<h4>BUILD PENDING</h4>{% else %}<h4>BUILD COMPLETED</h4>{% endif %}
+  {{ page.title }}<br/>
+</div>
+
+{% if page.release_packaged == true %}
+<a href="{{ base_release_url }}/{{ page.tag_name }}"><i class="fa fa-cloud-download"></i> Downloads</a>
+{% endif %}
+
+{% if page.coverage_url and page.coverage_url != "" %}
+<br/><a href="{{ page.coverage_url }}"><i class="fa fa-eye"></i> Coverage</a>
+{% endif %}
+
+{% if page.asset_url and page.asset_url != "" %}
+<br/><a href="{{ page.asset_url }}"><i class="fa fa-file-text-o"></i> Documents</a>
+{% endif %}
+<br/>
+<br/>
+
+tag_name: <a href="{{base_release_url}}/{{page.tag_name}}">{{page.tag_name}}</a><br/>
+commit_sha: <a href="{{base_commit_url}}/{{page.commit_sha}}">{{page.commit_sha}}</a><br/>
+branch_name: <a href="{{base_branch_url}}/{{page.branch_name}}">{{page.branch_name}}</a><br/>
+pull_request_issue_id:  <a href="{{base_pull_request_url}}/{{page.pull_request_issue_id}}">{{page.pull_request_issue_id}}</a><br/>
+coverage_url: <a href="{{page.coverage_url}}">{{page.coverage_url}}</a><br/>
+<br/>
+
+<div class='panel panel-info'>
+  <div class='panel-heading'>
+    <h4 class='panel-title'>
+      <a data-toggle='collapse' data-parent='#accordion-variables' href='#collapse-variables'>
+        Build Details
+      </a>
+    </h4>
+  </div>
+  <div id='collapse-variables' class='panel-collapse collapse'>
+    <div class='panel-body'>
+      <script>
+document.writeln(format_configuration(results_data));
+      </script>
+      <br/>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+if ({{page.unhandled_failure}})
+{
+  document.writeln(" \
+  <a id='failure'> \
+    <div class='page-header'> \
+      <h1>Unhandled Failure</h1> \
+    </div> \
+    </a><br/><code>" + results_data.failure + "</code><br/>");
+}
+</script>
+
+<a id="build">
+  <div class="page-header">
+    <h1>Build Messages (time: {{ page.build_time }}s)</h1>
+  </div>
+</a>
+
+<script type="text/javascript">
+var repo = "{{ page.repository }}"
+{% if page.tag_name %}
+var ref = "{{ page.tag_name }}";
+{% else %}
+var ref = "{{ page.commit_sha }}"
+{% endif %}
+document.writeln(format_error_rows(results_data.build_results));
+</script>
+
+{% if page.test_count == 0 %}
+{% assign test_percent = 100 %}
+{% else %}
+{% assign test_percent = page.test_passed_count | divided_by: page.test_count | times: 100.0 %}
+{% endif %}
+{% assign test_failure_count = page.test_count | minus: page.test_passed_count %}
+
+{% if test_percent < 90.0 %}
+  {% assign alert_class = "alert-danger" %}
+{% elsif page.test_run == false %}
+  {% assign alert_class = "alert-danger" %}
+{% elsif test_percent < 99.999 %}
+  {% assign alert_class = "alert-warning" %}
+{% else %}
+  {% assign alert_class = "alert-success" %}
+{% endif %}
+
+<a id="test">
+  <div class="page-header">
+    <h1>Test Results (time: {{ page.test_time }}s)</h1>
+    {% if  page.test_run == false %}
+    <br/><small>Not Run</small>
+    {% endif %}
+  </div>
+</a>
+
+<script type="text/javascript">
+
+document.writeln(format_test_rows(results_data.test_results));
+
+</script>
+
+{% if page.is_release %}
+
+<a id="package">
+  <div class="page-header">
+    <h1>Package Messages (time: {{ page.package_time}}s)</h1>
+  </div>
+</a>
+
+<script type="text/javascript">
+
+document.writeln(format_error_rows(results_data.package_results));
+
+</script>
+
+{% endif %}
+
+{% if page.coverage_enabled %}
+
+{% if page.coverage_lines == 0 %}
+{% assign coverage_percent = 0.0 %}
+{% else %}
+{% assign coverage_percent = page.coverage_lines | times: 1.0 | divided_by: page.coverage_total_lines | times: 100.0 %}
+{% endif %}
+
+{% capture coverage_percent_string %}{{coverage_percent}}{% endcapture %}
+{% assign coverage_percent_string = coverage_percent_string | split: "." | first %}
+
+{% if page.coverage_functions == 0 %}
+{% assign coverage_functions_percent = 0.0 %}
+{% else %}
+{% assign coverage_functions_percent = page.coverage_functions | times: 1.0 | divided_by: page.coverage_total_functions | times: 100.0 %}
+{% endif %}
+
+{% capture coverage_functions_percent_string %}{{coverage_functions_percent}}{% endcapture %}
+{% assign coverage_functions_percent_string = coverage_functions_percent_string | split: "." | first %}
+
+{% if coverage_functions_percent >= page.coverage_pass_limit %}
+{% assign functions_label_type = "success" %}
+{% elsif coverage_functions_percent >= page.coverage_warn_limit %}
+{% assign functions_label_type = "warning" %}
+{% else %}
+{% assign functions_label_type = "danger" %}
+{% endif %}
+
+{% if coverage_percent >= page.coverage_pass_limit %}
+{% assign lines_label_type = "success" %}
+{% elsif coverage_percent >= page.coverage_warn_limit %}
+{% assign lines_label_type = "warning" %}
+{% else %}
+{% assign lines_label_type = "danger" %}
+{% endif %}
+
+<a id="coverage">
+  <div class="page-header">
+    <h1>Coverage {{ coverage_percent_string }}%</h1>
+  </div>
+</a>
+
+coverage pass limit:  {{page.coverage_pass_limit}}%<br/>
+coverage warn limit:  {{page.coverage_warn_limit}}%<br/>
+<br/>
+
+{% if page.coverage_url and page.coverage_url != "" %}
+<a href="{{ page.coverage_url }}">Coverage Details</a>
+{% else %}
+No Coverage Details Uploaded
+{% endif %}
+<br/>
+
+<br/><p class='alert alert-{{lines_label_type}}'><a href="{{ page.coverage_url }}" class="alert-link">{{ page.coverage_lines }} covered lines</a> of {{ page.coverage_total_lines }} total lines ({{coverage_percent_string}}%)</p>
+<p class='alert alert-{{functions_label_type}}'><a href="{{ page.coverage_url }}" class="alert-link">{{ page.coverage_functions }} covered functions</a> of {{ page.coverage_total_functions }} total functions ({{coverage_functions_percent_string}}%)</p>
+
+<br/><br/>
+<br/><br/>
+
+{% endif %}
+
+{% if page.performance_test_count and page.performance_test_count > 0 %}
+
+<a id="performance">
+  <div class="page-header">
+    <h1>Performance Tests ({{ page.performance_test_count }})</h1>
+  </div>
+</a>
+
+<script type="text/javascript">
+  var baseline = get_baseline(results_data.configuration);
+
+  var baseline_test_count = baseline.performance_test_count==null?0:baseline.performance_test_count;
+  var baseline_time = baseline.performance_total_time==null?0:baseline.performance_total_time;
+
+  var commit_test_count = results_data.configuration.performance_test_count==null?0:results_data.configuration.performance_test_count;
+  var commit_time = results_data.configuration.performance_total_time==null?0:results_data.configuration.performance_total_time;
+
+  var per_test_change = (baseline_test_count == 0 || commit_test_count == 0)?"N/A":((1 - (commit_test_count / baseline_test_count)) * 100) + "%";
+  var per_time_change = (baseline_time == 0 || commit_time == 0)?"N/A":((1 - (commit_time / baseline_time)) * 100) + "%";
+
+  var count_class = function() {
+    if (commit_test_count < baseline_test_count) {
+      return "warning";
+    } else {
+      return "success";
+    }
+  }();
+
+  var time_class = function() {
+    if (commit_time <= baseline_time) {
+      return "success";
+    } else {
+      return "warning";
+    }
+  }();
+
+  document.writeln("<table class='table'><caption>Baseline Comparison (" + baseline.repository + "/" + baseline.branch_name + ")</caption><thead><tr><th></th><th>This Commit</th><th>Baseline</th><th>% Improvement</th></tr></thead>");
+  document.writeln("<tbody>");
+  document.writeln("<tr class='" + count_class + "'><td>Performance Test Count</td><td>" + commit_test_count + "</td><td>" + baseline_test_count + "</td><td>" + per_test_change + "</td></tr>");
+  document.writeln("<tr class='" + time_class + "'><td>Performance Test Time</td><td>" + commit_time + "</td><td>" + baseline_time + "</td><td>" + per_time_change + "</td></tr>");
+  document.writeln("</tbody></table>");
+
+</script>
+
+<script type="text/javascript">
+
+if (results_data.hasOwnProperty("performance_results") && results_data.performance_results != null && results_data.performance_results.hasOwnProperty("test_files") && results_data.performance_results.test_files != null) {
+  results_data.performance_results.test_files.forEach(function(elem) {
+    document.writeln(format_performance_rows(elem));
+  });
+}
+
+</script>
+
+{% endif %}
+
+</div>
+</body>
+

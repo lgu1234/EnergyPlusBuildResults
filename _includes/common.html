@@ -1,0 +1,74 @@
+<title>{{ page.title }}</title>
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+<meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
+<link rel="icon" type="image/png" href="favicon.png"/>
+
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/jquery-parsequery/jquery.parsequery.min.js"></script>
+<script src="bower_components/tablesorter/dist/js/jquery.tablesorter.min.js"></script>
+<script src="bower_components/tablesorter/dist/js/jquery.tablesorter.widgets.min.js"></script>
+<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="bower_components/lodash/lodash.min.js"></script>
+
+<link href="bower_components/font-awesome/css/font-awesome.css" rel="stylesheet">
+<link rel="stylesheet" href="bower_components/octicons/octicons/octicons.css">
+<link href="https://fonts.googleapis.com/css?family=Ubuntu:400,700&display=swap" rel="stylesheet">
+
+<script src="bower_components/d3/d3.min.js"></script>
+
+<style>
+
+.float-bottom {
+  position: absolute;
+  top: 65px;
+}
+
+.table-box {
+  position: relative;
+  height: 100%;
+  min-width: 80px;
+  min-height: 90px;
+}
+
+.mouse-over-circle {
+  fill: rgba(255,255,255,0);
+  stroke: none;
+}
+
+.panel-title a {
+  display: block;
+  padding: 10px 15px;
+  margin: -10px -15px;
+}
+</style>
+
+<script src="data.js"></script>
+<script src="helpers.js"></script>
+
+
+<script>
+var d3_date_parser = d3.time.format("%Y-%m-%d %H:%M:%S %Z");
+
+function parseDate(d) {
+  return d3_date_parser.parse(d);
+}
+
+function osIcon(device_id){
+  if (device_id.indexOf("Win") != -1) {
+    return "<i class='fa fa-windows'></i>";
+  } else if (device_id.indexOf("Linux") != -1) {
+    return "<i class='fa fa-linux'></i>";
+  } else if (device_id.indexOf("Mac") != -1) {
+    return "<i class='fa fa-apple'></i>";
+  } else {
+    return "";
+  }
+}
+</script>
+
